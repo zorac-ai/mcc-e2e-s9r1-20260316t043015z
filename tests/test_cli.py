@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -67,6 +70,26 @@ class CliTestCase(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("issue 999 not found", result.stderr)
+
+    def test_smtp_connection_failure_does_not_crash_cli(self) -> None:
+        """SMTP接続失敗時にCLIが正常終了しJSON出力が行われることを確認する。"""
+        from issue_tracker.cli import main
+
+        smtp_env = {
+            "SMTP_HOST": "localhost",
+            "SMTP_FROM": "sender@example.com",
+            "SMTP_TO": "recipient@example.com",
+        }
+        captured_stdout = io.StringIO()
+        with patch.dict(os.environ, smtp_env, clear=False), \
+             patch("smtplib.SMTP", side_effect=ConnectionRefusedError), \
+             patch("sys.stdout", captured_stdout):
+            exit_code = main(["--db", str(self.db_path), "add", "Test SMTP failure"])
+
+        self.assertEqual(exit_code, 0)
+        result = json.loads(captured_stdout.getvalue())
+        self.assertEqual(result["title"], "Test SMTP failure")
+        self.assertEqual(result["status"], "open")
 
 
 if __name__ == "__main__":

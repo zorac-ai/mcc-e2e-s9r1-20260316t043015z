@@ -87,6 +87,20 @@ class TestEmailNotifierFromEnv(unittest.TestCase):
         self.assertIsNone(notifier.username)
         self.assertIsNone(notifier.password)
 
+    def test_returns_none_when_smtp_from_missing(self) -> None:
+        env = {k: v for k, v in os.environ.items() if not k.startswith("SMTP_")}
+        env["SMTP_HOST"] = "mail.example.com"
+        env["SMTP_TO"] = "b@example.com"
+        with patch.dict(os.environ, env, clear=True):
+            self.assertIsNone(EmailNotifier.from_env())
+
+    def test_returns_none_when_smtp_to_missing(self) -> None:
+        env = {k: v for k, v in os.environ.items() if not k.startswith("SMTP_")}
+        env["SMTP_HOST"] = "mail.example.com"
+        env["SMTP_FROM"] = "a@example.com"
+        with patch.dict(os.environ, env, clear=True):
+            self.assertIsNone(EmailNotifier.from_env())
+
 
 class TestEmailNotifierMessageContent(unittest.TestCase):
     """Verify subject and body content by intercepting smtplib.SMTP."""

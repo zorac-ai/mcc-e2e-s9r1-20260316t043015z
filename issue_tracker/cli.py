@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 
 from .notifier import EmailNotifier
@@ -40,13 +41,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "add":
         result = store.add(args.title)
         if notifier is not None:
-            notifier.notify_created(result)
+            try:
+                notifier.notify_created(result)
+            except Exception:
+                print("Warning: failed to send notification", file=sys.stderr)
     elif args.command == "list":
         result = store.list(status=args.status)
     elif args.command == "close":
         result = store.close(args.issue_id)
         if notifier is not None:
-            notifier.notify_closed(result)
+            try:
+                notifier.notify_closed(result)
+            except Exception:
+                print("Warning: failed to send notification", file=sys.stderr)
     # MCC-LIVE-E2E: command anchor
     else:
         parser.error(f"unknown command: {args.command}")

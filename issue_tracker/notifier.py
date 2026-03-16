@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import smtplib
+import sys
 from email.message import EmailMessage
 from typing import Any
 
@@ -48,11 +49,19 @@ class EmailNotifier:
         host = os.environ.get("SMTP_HOST")
         if not host:
             return None
+        from_addr = os.environ.get("SMTP_FROM", "")
+        to_addr = os.environ.get("SMTP_TO", "")
+        if not from_addr or not to_addr:
+            print(
+                "Warning: SMTP_HOST is set but SMTP_FROM and/or SMTP_TO are missing; notifications disabled",
+                file=sys.stderr,
+            )
+            return None
         return cls(
             host=host,
             port=int(os.environ.get("SMTP_PORT", "25")),
-            from_addr=os.environ.get("SMTP_FROM", ""),
-            to_addr=os.environ.get("SMTP_TO", ""),
+            from_addr=from_addr,
+            to_addr=to_addr,
             username=os.environ.get("SMTP_USERNAME") or None,
             password=os.environ.get("SMTP_PASSWORD") or None,
             use_tls=os.environ.get("SMTP_TLS", "").lower() in ("1", "true", "yes"),
