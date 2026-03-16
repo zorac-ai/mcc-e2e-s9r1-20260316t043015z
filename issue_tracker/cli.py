@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 
+from .notifier import EmailNotifier
 from .store import IssueStore
 
 
@@ -34,13 +35,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     store = IssueStore(Path(args.db))
+    notifier = EmailNotifier.from_env()
 
     if args.command == "add":
         result = store.add(args.title)
+        if notifier is not None:
+            notifier.notify_created(result)
     elif args.command == "list":
         result = store.list(status=args.status)
     elif args.command == "close":
         result = store.close(args.issue_id)
+        if notifier is not None:
+            notifier.notify_closed(result)
     # MCC-LIVE-E2E: command anchor
     else:
         parser.error(f"unknown command: {args.command}")
